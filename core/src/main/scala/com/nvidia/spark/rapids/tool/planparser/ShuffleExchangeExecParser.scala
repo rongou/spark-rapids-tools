@@ -39,12 +39,13 @@ case class ShuffleExchangeExecParser(
     val fetchId = node.metrics.find(_.name == "fetch wait time").map(_.accumulatorId)
     val maxFetchTime = SQLPlanParser.getTotalDuration(fetchId, app)
     val duration = (maxWriteTime ++ maxFetchTime).reduceOption(_ + _)
-    val (filterSpeedupFactor, isSupported) = if (checker.isExecSupported(fullExecName)) {
-      (checker.getSpeedupFactor(fullExecName), true)
+    val (baseline, filterSpeedupFactor, isSupported) = if (checker.isExecSupported(fullExecName)) {
+      (checker.getBaseline(fullExecName), checker.getSpeedupFactor(fullExecName), true)
     } else {
-      (1.0, false)
+      (0.0, 1.0, false)
     }
     // TODO - add in parsing expressions - average speedup across?
-    new ExecInfo(sqlID, node.name, "", filterSpeedupFactor, duration, node.id, isSupported, None)
+    new ExecInfo(sqlID, node.name, "", baseline, filterSpeedupFactor,
+      duration, node.id, isSupported, None)
   }
 }

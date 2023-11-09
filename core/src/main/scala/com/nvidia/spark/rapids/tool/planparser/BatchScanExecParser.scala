@@ -36,11 +36,12 @@ case class BatchScanExecParser(
     val readInfo = ReadParser.parseReadNode(node)
     // don't use the isExecSupported because we have finer grain.
     val score = ReadParser.calculateReadScoreRatio(readInfo, checker)
+    val baseline = checker.getBaseline(fullExecName)
     val speedupFactor = checker.getSpeedupFactor(fullExecName)
     val overallSpeedup = Math.max((speedupFactor * score), 1.0)
 
     // TODO - add in parsing expressions - average speedup across?
-    new ExecInfo(sqlID, s"${node.name} ${readInfo.format}", "", overallSpeedup,
+    new ExecInfo(sqlID, s"${node.name} ${readInfo.format}", "", baseline, overallSpeedup,
       maxDuration, node.id, score > 0, None)
   }
 }

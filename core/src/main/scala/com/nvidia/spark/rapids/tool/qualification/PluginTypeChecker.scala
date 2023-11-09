@@ -64,6 +64,8 @@ class PluginTypeChecker(platform: String = "onprem",
   // var for testing purposes
   private var (readFormatsAndTypes, writeFormats) = readSupportedTypesForPlugin
 
+  private var supportedOperatorsBaseline = readOperatorsBaseline
+
   private var supportedOperatorsScore = readOperatorsScore
 
   private var supportedExecs = readSupportedExecs
@@ -97,6 +99,26 @@ class PluginTypeChecker(platform: String = "onprem",
 
   def getSupportedExprs: Map[String, String] = supportedExprs
 
+  private def readOperatorsBaseline: Map[String, Double] = {
+    speedupFactorFile match {
+      case None =>
+        logInfo("Baselines are only supported by custom speed factor file")
+        Map.empty[String, Double]
+      case Some(file) =>
+        logInfo(s"Reading operators baselines from custom speedup factor file: $file")
+        try {
+          val path = new Path(file)
+          val fs = FileSystem.get(path.toUri, new Configuration())
+          val source = new BufferedSource(fs.open(path))
+          readSupportedOperators(source, "baseline").map(x => (x._1, x._2.toDouble))
+        } catch {
+          case NonFatal(e) =>
+            logError(s"Exception processing operators scores with file: $file", e)
+          Map.empty[String, Double]
+        }
+    }
+  }
+
   private def readOperatorsScore: Map[String, Double] = {
     speedupFactorFile match {
       case None =>
@@ -123,7 +145,7 @@ class PluginTypeChecker(platform: String = "onprem",
           val path = new Path(file)
           val fs = FileSystem.get(path.toUri, new Configuration())
           val source = new BufferedSource(fs.open(path))
-          readSupportedOperators(source, "score").map(x => (x._1, x._2.toDouble))
+          readSupportedOperators(source, "score with baseline").map(x => (x._1, x._2.toDouble))
         } catch {
           case NonFatal(e) =>
             logError(s"Exception processing operators scores with file: $file", e)
@@ -190,6 +212,8 @@ class PluginTypeChecker(platform: String = "onprem",
               supportedOperators.put(i, cols(1))
             }
           }
+        } else if (operatorType.equals("score with baseline")) {
+          supportedOperators.put(cols(0), cols(2))
         } else {
           supportedOperators.put(cols(0), cols(1))
         }
@@ -295,6 +319,10 @@ class PluginTypeChecker(platform: String = "onprem",
   def isWriteFormatSupported(writeFormat: ArrayBuffer[String]): ArrayBuffer[String] = {
     writeFormat.map(x => x.toLowerCase.trim).filterNot(
       writeFormats.map(x => x.trim).contains(_))
+  }
+
+  def getBaseline(execOrExpr: String): Double = {
+    supportedOperatorsBaseline.get(execOrExpr).getOrElse(0)
   }
 
   def getSpeedupFactor(execOrExpr: String): Double = {

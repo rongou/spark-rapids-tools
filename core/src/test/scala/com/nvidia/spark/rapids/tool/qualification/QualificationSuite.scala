@@ -92,6 +92,7 @@ class QualificationSuite extends BaseTestSuite {
     (QualOutputWriter.NONSQL_DUR_STR, LongType),
     (QualOutputWriter.UNSUPPORTED_TASK_DURATION_STR, LongType),
     (QualOutputWriter.SUPPORTED_SQL_TASK_DURATION_STR, LongType),
+    (QualOutputWriter.BASELINE_STR, DoubleType),
     (QualOutputWriter.SPEEDUP_FACTOR_STR, DoubleType),
     (QualOutputWriter.APP_DUR_ESTIMATED_STR, BooleanType),
     (QualOutputWriter.UNSUPPORTED_EXECS, StringType),

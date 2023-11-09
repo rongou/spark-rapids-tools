@@ -343,6 +343,7 @@ case class FormattedQualificationSummaryInfo(
     nonSqlTaskDurationAndOverhead: Long,
     unsupportedSQLTaskDuration: Long,
     supportedSQLTaskDuration: Long,
+    taskBaseline: Double,
     taskSpeedupFactor: Double,
     endDurationEstimated: Boolean,
     unSupportedExecs: String,
@@ -373,7 +374,9 @@ object QualOutputWriter {
   val NONSQL_DUR_STR = "NONSQL Task Duration Plus Overhead"
   val UNSUPPORTED_TASK_DURATION_STR = "Unsupported Task Duration"
   val SUPPORTED_SQL_TASK_DURATION_STR = "Supported SQL DF Task Duration"
+  val BASELINE_STR = "Task Baseline"
   val SPEEDUP_FACTOR_STR = "Task Speedup Factor"
+  val AVERAGE_BASELINE_STR = "Average Baseline"
   val AVERAGE_SPEEDUP_STR = "Average Speedup Factor"
   val SPEEDUP_BUCKET_STR = "Recommendation"
   val LONGEST_SQL_DURATION_STR = "Longest SQL Duration"
@@ -578,6 +581,7 @@ object QualOutputWriter {
       NONSQL_DUR_STR -> NONSQL_DUR_STR.size,
       UNSUPPORTED_TASK_DURATION_STR -> UNSUPPORTED_TASK_DURATION_STR.size,
       SUPPORTED_SQL_TASK_DURATION_STR -> SUPPORTED_SQL_TASK_DURATION_STR.size,
+      BASELINE_STR -> BASELINE_STR.size,
       SPEEDUP_FACTOR_STR -> SPEEDUP_FACTOR_STR.size,
       APP_DUR_ESTIMATED_STR -> APP_DUR_ESTIMATED_STR.size,
       UNSUPPORTED_EXECS -> UNSUPPORTED_EXECS.size,
@@ -743,6 +747,7 @@ object QualOutputWriter {
       SQL_ID_STR -> SQL_ID_STR.size,
       EXEC_STR -> getMaxSizeForHeader(execInfos.map(_.exec.size), EXEC_STR),
       EXPR_STR -> getMaxSizeForHeader(execInfos.map(_.expr.size), EXPR_STR),
+      BASELINE_STR -> BASELINE_STR.size,
       SPEEDUP_FACTOR_STR -> SPEEDUP_FACTOR_STR.size,
       EXEC_DURATION -> EXEC_DURATION.size,
       EXEC_NODEID -> EXEC_NODEID.size,
@@ -836,6 +841,7 @@ object QualOutputWriter {
       info.sqlID.toString -> headersAndSizes(SQL_ID_STR),
       reformatCSVFunc(info.exec) -> headersAndSizes(EXEC_STR),
       reformatCSVFunc(info.expr) -> headersAndSizes(EXEC_STR),
+      ToolUtils.formatDoublePrecision(info.baseline) -> headersAndSizes(BASELINE_STR),
       ToolUtils.formatDoublePrecision(info.speedupFactor) -> headersAndSizes(SPEEDUP_FACTOR_STR),
       info.duration.getOrElse(0).toString -> headersAndSizes(EXEC_DURATION),
       info.nodeId.toString -> headersAndSizes(EXEC_NODEID),
@@ -854,6 +860,7 @@ object QualOutputWriter {
     val detailedHeadersAndFields = LinkedHashMap[String, Int](
       APP_ID_STR -> QualOutputWriter.getAppIdSize(appInfos),
       STAGE_ID_STR -> STAGE_ID_STR.size,
+      AVERAGE_BASELINE_STR -> AVERAGE_BASELINE_STR.size,
       AVERAGE_SPEEDUP_STR -> AVERAGE_SPEEDUP_STR.size,
       STAGE_DUR_STR -> STAGE_DUR_STR.size,
       UNSUPPORTED_TASK_DURATION_STR -> UNSUPPORTED_TASK_DURATION_STR.size,
@@ -876,6 +883,8 @@ object QualOutputWriter {
       val data = ListBuffer[(String, Int)](
         reformatCSVFunc(appId) -> headersAndSizes(APP_ID_STR),
         info.stageId.toString -> headersAndSizes(STAGE_ID_STR),
+        ToolUtils.formatDoublePrecision(info.averageBaseline) ->
+          headersAndSizes(AVERAGE_BASELINE_STR),
         ToolUtils.formatDoublePrecision(info.averageSpeedup) ->
           headersAndSizes(AVERAGE_SPEEDUP_STR),
         info.stageTaskTime.toString -> headersAndSizes(STAGE_DUR_STR),
@@ -1023,6 +1032,7 @@ object QualOutputWriter {
       appInfo.nonSqlTaskDurationAndOverhead,
       appInfo.unsupportedSQLTaskDuration,
       appInfo.supportedSQLTaskDuration,
+      ToolUtils.truncateDoubleToTwoDecimal(appInfo.taskBaseline),
       ToolUtils.truncateDoubleToTwoDecimal(appInfo.taskSpeedupFactor),
       appInfo.endDurationEstimated,
       appInfo.unSupportedExecs,
@@ -1062,6 +1072,7 @@ object QualOutputWriter {
       appInfo.nonSqlTaskDurationAndOverhead.toString -> headersAndSizes(NONSQL_DUR_STR),
       appInfo.unsupportedSQLTaskDuration.toString -> headersAndSizes(UNSUPPORTED_TASK_DURATION_STR),
       appInfo.supportedSQLTaskDuration.toString -> headersAndSizes(SUPPORTED_SQL_TASK_DURATION_STR),
+      appInfo.taskBaseline.toString -> headersAndSizes(BASELINE_STR),
       appInfo.taskSpeedupFactor.toString -> headersAndSizes(SPEEDUP_FACTOR_STR),
       appInfo.endDurationEstimated.toString -> headersAndSizes(APP_DUR_ESTIMATED_STR),
       reformatCSVFunc(appInfo.unSupportedExecs) -> headersAndSizes(UNSUPPORTED_EXECS),

@@ -30,12 +30,13 @@ case class CartesianProductExecParser(
   override def parse: ExecInfo = {
     // CartesianProduct doesn't have duration
     val duration = None
-    val (speedupFactor, isSupported) = if (checker.isExecSupported(fullExecName)) {
-      (checker.getSpeedupFactor(fullExecName), true)
+    val (baseline, speedupFactor, isSupported) = if (checker.isExecSupported(fullExecName)) {
+      (checker.getBaseline(fullExecName), checker.getSpeedupFactor(fullExecName), true)
     } else {
-      (1.0, false)
+      (0.0, 1.0, false)
     }
     // TODO - add in parsing expressions - average speedup across?
-    new ExecInfo(sqlID, node.name, "", speedupFactor, duration, node.id, isSupported, None)
+    new ExecInfo(sqlID, node.name, "", baseline, speedupFactor,
+      duration, node.id, isSupported, None)
   }
 }

@@ -32,13 +32,14 @@ case class SubqueryBroadcastExecParser(
   override def parse: ExecInfo = {
     val collectTimeId = node.metrics.find(_.name == "time to collect (ms)").map(_.accumulatorId)
     val duration = SQLPlanParser.getDriverTotalDuration(collectTimeId, app)
-    val (filterSpeedupFactor, isSupported) = if (checker.isExecSupported(fullExecName)) {
-      (checker.getSpeedupFactor(fullExecName), true)
+    val (baseline, filterSpeedupFactor, isSupported) = if (checker.isExecSupported(fullExecName)) {
+      (checker.getBaseline(fullExecName), checker.getSpeedupFactor(fullExecName), true)
     } else {
-      (1.0, false)
+      (0.0, 1.0, false)
     }
     // TODO - check is broadcast associated can be replaced
     // TODO - add in parsing expressions - average speedup across?
-    new ExecInfo(sqlID, node.name, "", filterSpeedupFactor, duration, node.id, isSupported, None)
+    new ExecInfo(sqlID, node.name, "", baseline, filterSpeedupFactor,
+      duration, node.id, isSupported, None)
   }
 }

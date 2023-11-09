@@ -32,6 +32,7 @@ class ExecInfo(
     val sqlID: Long,
     val exec: String,
     val expr: String,
+    val baseline: Double,
     val speedupFactor: Double,
     val duration: Option[Long],
     val nodeId: Long,
@@ -51,7 +52,8 @@ class ExecInfo(
     }
   }
   override def toString: String = {
-    s"exec: $exec, expr: $expr, sqlID: $sqlID , speedupFactor: $speedupFactor, " +
+    s"exec: $exec, expr: $expr, sqlID: $sqlID , baseline: $baseline, " +
+      s"speedupFactor: $speedupFactor, " +
       s"duration: $duration, nodeId: $nodeId, " +
       s"isSupported: $isSupported, children: " +
       s"${childrenToString}, stages: ${stages.mkString(",")}, " +
@@ -216,7 +218,7 @@ object SQLPlanParser extends Logging {
           case c if (c.contains("CreateDataSourceTableAsSelectCommand")) =>
             // create data source table doesn't show the format so we can't determine
             // if we support it
-            new ExecInfo(sqlID, node.name, expr = "", 1, duration = None, node.id,
+            new ExecInfo(sqlID, node.name, expr = "", 0, 1, duration = None, node.id,
               isSupported = false, None)
           case "CustomShuffleReader" | "AQEShuffleRead" =>
             CustomShuffleReaderExecParser(node, checker, sqlID).parse
@@ -274,7 +276,7 @@ object SQLPlanParser extends Logging {
             // Execs that are members of reuseExecs (i.e., ReusedExchange) should be marked as
             // supported but with shouldRemove flag set to True.
             // Setting the "shouldRemove" is handled at the end of the function.
-            new ExecInfo(sqlID, node.name, expr = "", 1, duration = None, node.id,
+            new ExecInfo(sqlID, node.name, expr = "", 0, 1, duration = None, node.id,
               isSupported = reuseExecs.contains(node.name), None)
         }
       } catch {
@@ -288,7 +290,7 @@ object SQLPlanParser extends Logging {
         case NonFatal(e) =>
           logWarning(s"Unexpected error parsing plan node ${node.name}. " +
           s" sqlID = ${sqlID}", e)
-          new ExecInfo(sqlID, node.name, expr = "", 1, duration = None, node.id,
+          new ExecInfo(sqlID, node.name, expr = "", 0, 1, duration = None, node.id,
             isSupported = false, None)
       }
       // check is the node has a dataset operations and if so change to not supported
@@ -305,9 +307,18 @@ object SQLPlanParser extends Logging {
       // shouldRemove is set to true if the exec is a member of "execsToBeRemoved" or if the node
       // is a duplicate
       val removeFlag = execInfos.shouldRemove || isDupNode || execsToBeRemoved.contains(node.name)
-      Seq(new ExecInfo(execInfos.sqlID, execInfos.exec, execInfos.expr, execInfos.speedupFactor,
-        execInfos.duration, execInfos.nodeId, supported, execInfos.children,
+      Seq(new ExecInfo(execInfos.sqlID, execInfos.exec, execInfos.expr, execInfos.baseline,
+        execInfos.speedupFactor, execInfos.duration, execInfos.nodeId, supported, execInfos.children,
         stagesInNode, removeFlag, execInfos.unsupportedExprs))
+    }
+  }
+
+  def averageBaseline(arr: Seq[Double]): Double = {
+    if (arr.isEmpty) {
+      0.0
+    } else {
+      val sum = arr.sum
+      ToolUtils.calculateAverage(sum, arr.size, 2)
     }
   }
 

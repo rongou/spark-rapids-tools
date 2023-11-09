@@ -38,15 +38,15 @@ case class ObjectHashAggregateExecParser(
     val exprString = node.desc.replaceFirst("ObjectHashAggregate", "")
     val expressions = SQLPlanParser.parseAggregateExpressions(exprString)
     val notSupportedExprs = expressions.filterNot(expr => checker.isExprSupported(expr))
-    val (speedupFactor, isSupported) = if (checker.isExecSupported(fullExecName) &&
+    val (baseline, speedupFactor, isSupported) = if (checker.isExecSupported(fullExecName) &&
         notSupportedExprs.isEmpty) {
-      (checker.getSpeedupFactor(fullExecName), true)
+      (checker.getBaseline(fullExecName), checker.getSpeedupFactor(fullExecName), true)
     } else {
-      (1.0, false)
+      (0.0, 1.0, false)
     }
 
     // TODO - add in parsing expressions - average speedup across?
-    new ExecInfo(sqlID, node.name, "", speedupFactor,
+    new ExecInfo(sqlID, node.name, "", baseline, speedupFactor,
       maxDuration, node.id, isSupported, None, unsupportedExprs = notSupportedExprs)
   }
 }
